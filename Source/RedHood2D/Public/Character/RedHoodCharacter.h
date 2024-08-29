@@ -3,27 +3,55 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InputActionValue.h"
 #include "PaperCharacter.h"
+#include "Interface/PlayerInterface.h"
 #include "RedHoodCharacter.generated.h"
 
+class UInputMappingContext;
+class UInputAction;
+class UCameraComponent;
+class USpringArmComponent;
+
 UCLASS()
-class REDHOOD2D_API ARedHoodCharacter : public APaperCharacter
+class REDHOOD2D_API ARedHoodCharacter : public APaperCharacter, public IPlayerInterface
 {
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this character's properties
+	
 	ARedHoodCharacter();
 
 protected:
-	// Called when the game starts or when spawned
+
 	virtual void BeginPlay() override;
 
 public:	
-	// Called every frame
+	
 	virtual void Tick(float DeltaTime) override;
 
-	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	void Move(const FInputActionValue& Value);
+
+private:
+
+	UPROPERTY(VisibleAnywhere, meta = (AllowPrivateAccess = true))
+	TObjectPtr<USpringArmComponent> CameraBoom;
+
+	UPROPERTY(VisibleAnywhere, meta = (AllowPrivateAccess = true))
+	TObjectPtr<UCameraComponent> FollowCamera;
+
+	UPROPERTY(EditDefaultsOnly, Category="Custom Values|Input")
+	TObjectPtr<UInputMappingContext> RedHoodMappingContext;
+
+	UPROPERTY(EditDefaultsOnly, Category="Custom Values|Input")
+	TObjectPtr<UInputAction> MoveAction;
+
+	UPROPERTY(EditDefaultsOnly, Category= "Custom Values|Input")
+	TObjectPtr<UInputAction> JumpAction;
+
+	void RotateController() const;
+	
 
 };
