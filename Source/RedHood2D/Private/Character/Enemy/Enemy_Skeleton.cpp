@@ -10,5 +10,5 @@ void AEnemy_Skeleton::SetCombatTarget(AActor* CombatTarget)
 
 void AEnemy_Skeleton::Attack_Implementation()
 {
-	K2_Attack();
+	K2_InterfaceAttack();
 }

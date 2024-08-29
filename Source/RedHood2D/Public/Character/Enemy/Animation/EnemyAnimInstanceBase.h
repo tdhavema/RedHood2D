@@ -27,5 +27,8 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category="Character")
 	bool bIsMoving;
+
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category= "Essential Variables")
+	bool bIsAlive = true;
 	
 };

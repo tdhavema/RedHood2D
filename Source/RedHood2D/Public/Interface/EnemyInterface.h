@@ -28,4 +28,7 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void Attack();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void SetHitReacting(bool bHitReacting);
 };

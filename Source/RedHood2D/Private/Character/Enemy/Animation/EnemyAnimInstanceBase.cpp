@@ -20,6 +20,7 @@ void UEnemyAnimInstanceBase::OnTick_Implementation(float DeltaTime)
 	if (!IsValid(EnemyBase)) return;
 
 	bIsMoving = EnemyBase->GetVelocity().Size() > 0.f;
+	bIsAlive = EnemyBase->bAlive;
 	
 }
 

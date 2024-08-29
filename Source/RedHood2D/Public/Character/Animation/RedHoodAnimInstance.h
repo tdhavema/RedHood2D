@@ -6,6 +6,7 @@
 #include "PaperZDAnimInstance.h"
 #include "RedHoodAnimInstance.generated.h"
 
+class AEnemyBase;
 class UCharacterMovementComponent;
 /**
  * 

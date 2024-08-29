@@ -5,9 +5,12 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "PaperZDAnimInstance.h"
+#include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "UI/OverlayWidget.h"
 
 
 ARedHoodCharacter::ARedHoodCharacter()
@@ -24,18 +27,7 @@ ARedHoodCharacter::ARedHoodCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>("FollowCamera");
 	FollowCamera->SetupAttachment(CameraBoom);
 
-}
-
-
-void ARedHoodCharacter::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-void ARedHoodCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
+	PaperZDAnimComponent = CreateDefaultSubobject<UPaperZDAnimationComponent>("AnimComponent");
 
 }
 
@@ -43,9 +35,9 @@ void ARedHoodCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	if (const APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+	if (const APlayerController* LocalPlayerController = Cast<APlayerController>(GetController()))
 	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayerController->GetLocalPlayer()))
 		{
 			Subsystem->AddMappingContext(RedHoodMappingContext, 0);
 		}
@@ -54,12 +46,22 @@ void ARedHoodCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		{
 			EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ARedHoodCharacter::Move);
 			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+			EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ARedHoodCharacter::AttackButtonPressed);
 		}
 	}
 }
 
+void ARedHoodCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	CreateOverlay();
+}
+
 void ARedHoodCharacter::Move(const FInputActionValue& Value)
 {
+	if (bAttacking) return;
+	
 	const FVector ForwardDirection = FVector(1.f, 0.f, 0.f);
 
 	RotateController();
@@ -88,3 +90,118 @@ void ARedHoodCharacter::RotateController() const
 	}
 }
 
+void ARedHoodCharacter::AttackButtonPressed(const FInputActionValue& Value)
+{
+	if (IsValid(PaperZDAnimComponent))
+	{
+		if (bAttackWindowOpen)
+		{
+			bComboActivated = true;
+		}
+		else if (!bAttacking)
+		{
+			PlayFirstAttack();
+		}
+	}
+}
+
+void ARedHoodCharacter::Jump()
+{
+	if (bAttacking) return;
+	
+	Super::Jump();
+}
+
+void ARedHoodCharacter::CreateOverlay()
+{
+	if (IsValid(PlayerController))
+	{
+		UUserWidget* Widget = CreateWidget<UUserWidget>(PlayerController, OverlayWidgetClass);
+		OverlayWidget = Cast<UOverlayWidget>(Widget);
+
+		// This is so the Health Progress Bar has initial values on loading up.
+		OverlayWidget->UpdateHealth(Health, MaxHealth);
+		OverlayWidget->AddToViewport();
+	}
+}
+
+void ARedHoodCharacter::DecrementHealth(float InDamage)
+{
+	Super::DecrementHealth(InDamage);
+
+	if (IsValid(OverlayWidget))
+	{
+		OverlayWidget->UpdateHealth(Health, MaxHealth);
+	}
+}
+
+void ARedHoodCharacter::PlayFirstAttack()
+{
+	bAttacking = true;
+			
+	if (UPaperZDAnimInstance* OwningInstance = PaperZDAnimComponent->GetAnimInstance())
+	{
+		PlayComboAttack(OwningInstance, 0);
+	}
+}
+
+void ARedHoodCharacter::ResetAttacking_Implementation()
+{
+	HandleAttackReset();
+}
+
+void ARedHoodCharacter::HandleAttackReset()
+{
+	if (!bComboActivated)
+	{
+		bAttacking = false;
+		AttackCount = 0;
+	}
+	else if (IsValid(PaperZDAnimComponent))
+	{
+		if (UPaperZDAnimInstance* OwningInstance = PaperZDAnimComponent->GetAnimInstance())
+		{
+			if (IncrementAttackCount())
+			{
+				bAttacking = false;
+				bComboActivated = false;
+				AttackCount = 0;
+			}
+			else
+			{
+				PlayComboAttack(OwningInstance, AttackCount);
+				bComboActivated = false;
+			}
+		}
+	}
+}
+
+void ARedHoodCharacter::PlayComboAttack(UPaperZDAnimInstance* OwningInstance, int32 InAttackCount)
+{
+	OwningInstance->PlayAnimationOverride(AttackAnimData[InAttackCount].AttackAnimation);
+	Damage = AttackAnimData[InAttackCount].AttackDamage;
+	TraceExtent = AttackAnimData[InAttackCount].BoxTraceExtent;
+	BoxTraceStart->SetRelativeLocation(AttackAnimData[InAttackCount].BoxTraceStart);
+	BoxTraceEnd->SetRelativeLocation(AttackAnimData[InAttackCount].BoxTraceEnd);
+}
+
+bool ARedHoodCharacter::IncrementAttackCount()
+{
+	++AttackCount;
+
+	return AttackCount > AttackAnimData.Num() - 1;
+}
+
+void ARedHoodCharacter::SetAttackWindowOpen_Implementation(bool bOpen)
+{
+	bAttackWindowOpen = bOpen;
+}
+
+void ARedHoodCharacter::ResetCombatVariables_Implementation()
+{
+	SetInputEnabled(true);
+	bAttacking = false;
+	bAttackWindowOpen = false;
+	bComboActivated = false;
+	AttackCount = 0;
+}
