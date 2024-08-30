@@ -178,11 +178,13 @@ void ARedHoodCharacter::HandleAttackReset()
 
 void ARedHoodCharacter::PlayComboAttack(UPaperZDAnimInstance* OwningInstance, int32 InAttackCount)
 {
-	OwningInstance->PlayAnimationOverride(AttackAnimData[InAttackCount].AttackAnimation);
-	Damage = AttackAnimData[InAttackCount].AttackDamage;
-	TraceExtent = AttackAnimData[InAttackCount].BoxTraceExtent;
-	BoxTraceStart->SetRelativeLocation(AttackAnimData[InAttackCount].BoxTraceStart);
-	BoxTraceEnd->SetRelativeLocation(AttackAnimData[InAttackCount].BoxTraceEnd);
+	const FAttackAnimData SelectedData = AttackAnimData[InAttackCount];
+	
+	OwningInstance->PlayAnimationOverride(SelectedData.AttackAnimation);
+	Damage = SelectedData.AttackDamage;
+	TraceExtent = SelectedData.BoxTraceExtent;
+	BoxTraceStart->SetRelativeLocation(SelectedData.BoxTraceStart);
+	BoxTraceEnd->SetRelativeLocation(SelectedData.BoxTraceEnd);
 }
 
 bool ARedHoodCharacter::IncrementAttackCount()
